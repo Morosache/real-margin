@@ -14,7 +14,7 @@ export default function Sidebar() {
     <>
       {/* Desktop sidebar */}
       <nav className="w-50 h-screen bg-white py-4 border-r border-gray-200 hidden md:block">
-        <NavContent onClose={() => setMobileOpen(false)} />
+        <NavContent />
       </nav>
 
       {/* Top bar on mobile*/}
