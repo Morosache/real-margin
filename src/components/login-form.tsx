@@ -1,3 +1,9 @@
+"use client"
+
+import {useState} from "react";
+import {useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -21,6 +27,36 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  //hooks for routing and supabase
+  const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
+
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // auth handler
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const {error} = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if(error){
+      setError(error.message);
+      setLoading(false);
+    } else{
+      router.push("/dashboard");
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -31,11 +67,12 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
+                  name="email"
                   id="email"
                   type="email"
                   placeholder="m@example.com"
@@ -52,10 +89,15 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input name="password" id="password" type="password" required />
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                
+                {error && <p className="text-sm text-red-500 text-center font-medium">{error}</p>}
+
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Loggin in..." : "Login"}
+                </Button>
                 <Button variant="outline" type="button">
                   Login with Google
                 </Button>
