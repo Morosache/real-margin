@@ -1,3 +1,9 @@
+"use client";
+
+import {useState} from "react";
+import {useRouter} from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -17,6 +23,56 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
+
+  const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
+
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  //signup submit handler
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirm-password")as string;
+
+    // basic validation
+    if (password !== confirmPassword){
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    // call supabase
+    const {data, error} = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      // If the user is logged in immediately (session exists)
+      if (data.session) {
+        router.push("/dashboard");
+      } else {
+        setSuccess(true);
+        setLoading(false);
+      }
+      // Note: If email confirmation is ON in Supabase, they need to check their email.
+      // If it's OFF, they are logged in immediately.
+    }
+  };
   return (
     <Card {...props}>
       <CardHeader>
@@ -26,15 +82,31 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form>
+        {success ? (
+          /* SUCCESS STATE - Shown only after signup */
+          <div className="flex flex-col gap-4 py-4 text-center">
+            <div className="rounded-lg bg-green-50 p-4 text-green-700 border
+      border-green-200">
+              <p className="text-sm font-semibold">Verify your email</p>
+              <p className="mt-1 text-xs">We&apos;ve sent a confirmation link to your inbox. Please click it to complete
+      your registration.</p>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/login">Back to Login</Link>
+            </Button>
+          </div>
+        ) : (
+        /* FORM STATE - Shown by default */
+        <form onSubmit={handleSubmit}>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="name">Full Name</FieldLabel>
-              <Input id="name" type="text" placeholder="John Doe" required />
+              <Input name="name" id="name" type="text" placeholder="John Doe" required />
             </Field>
             <Field>
               <FieldLabel htmlFor="email">Email</FieldLabel>
               <Input
+                name="email"
                 id="email"
                 type="email"
                 placeholder="m@example.com"
@@ -47,7 +119,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             </Field>
             <Field>
               <FieldLabel htmlFor="password">Password</FieldLabel>
-              <Input id="password" type="password" required />
+              <Input name="password" id="password" type="password" required />
               <FieldDescription>
                 Must be at least 8 characters long.
               </FieldDescription>
@@ -56,12 +128,16 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               <FieldLabel htmlFor="confirm-password">
                 Confirm Password
               </FieldLabel>
-              <Input id="confirm-password" type="password" required />
+              <Input name="confirm-password" id="confirm-password" type="password" required />
               <FieldDescription>Please confirm your password.</FieldDescription>
             </Field>
             <FieldGroup>
               <Field>
-                <Button type="submit">Create Account</Button>
+                {error && <p className="text-sm text-red-500 text-center font-medium">{error}</p>}
+
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Creating..." : "Create Account"}
+                  </Button>
                 <Button variant="outline" type="button">
                   Sign up with Google
                 </Button>
@@ -72,6 +148,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             </FieldGroup>
           </FieldGroup>
         </form>
+        )}
       </CardContent>
     </Card>
   )
