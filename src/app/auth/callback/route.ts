@@ -36,6 +36,9 @@ export async function GET(request: Request) {
         if(!error){
             return NextResponse.redirect(`${origin}${next}`)
         }
+        // case A: there was a code, but it failed to exchange
         return NextResponse.redirect(`${origin}/login?error=Authentication failed`)
     }
+    //case B: there was no code in the URL at all
+    return NextResponse.redirect(`${origin}/login?error=No authentication code provided`)
 }
