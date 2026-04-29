@@ -1,3 +1,5 @@
+"use client";
+
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { create } from "domain";
 import { useRouter } from "next/navigation";
